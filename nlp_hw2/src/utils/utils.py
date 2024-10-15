@@ -20,12 +20,6 @@ def text_to_words(text: str):
 
 class Binarizer:
     def __init__(self, dataset: pd.DataFrame, labels_col: str = "labels"):
-        """Initializes class
-
-        Args:
-            dataset (pd.DataFrame): Dataset with a column where labels are split by a comma
-            labels_col (str, optional): Needed column name. Defaults to "labels".
-        """
         self.labels_col = labels_col
         
         items_labels = dataset[labels_col].apply(lambda x: set(x.split(", ")))
@@ -38,10 +32,8 @@ class Binarizer:
         self._all_labels = sorted(_all_labels)
 
     def transform(self, dataset: pd.DataFrame, add_every_label: bool = False):
-        """Transforms the given dataset in-place
-
-        Args:
-            dataset (pd.DataFrame): df to transform
+        """
+        Transforms in-place
         """
         # добавляем колонку с вектором ответов
         dataset["binary_labels"] = dataset[self.labels_col].apply(lambda x: self.binary_encode(x.split(", "), self._all_labels))
