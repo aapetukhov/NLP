@@ -1,7 +1,6 @@
-from collections import Counter, defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from collections import defaultdict
+from typing import List, Tuple
 
-import numpy as np
 
 
 def int_dict():

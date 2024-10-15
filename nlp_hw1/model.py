@@ -1,8 +1,7 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List
 
 from ngram_lm import NGramLanguageModel
-from prefix_tree import PrefixTree, PrefixTreeNode
-from suggester import TextSuggestion, WordPieceTextSuggestion
+from suggester import WordPieceTextSuggestion
 from tokenizers import BertWordPieceTokenizer
 from word_completor import WordCompletor
 

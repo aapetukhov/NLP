@@ -2,7 +2,6 @@ import re
 
 import nltk
 from nltk.corpus import stopwords
-from nltk.stem import PorterStemmer, WordNetLemmatizer
 from tokenizers import BertWordPieceTokenizer
 
 # чтобы заново не скачивать
