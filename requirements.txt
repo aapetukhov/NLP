@@ -1,0 +1,15 @@
+torch==2.2.0
+soundfile
+numpy==1.26.4
+seaborn
+tqdm
+matplotlib
+pandas
+wandb
+hydra-core
+
+black
+isort
+pre-commit
+editdistance
+wget
