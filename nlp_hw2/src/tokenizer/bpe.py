@@ -4,9 +4,9 @@ from collections import Counter, defaultdict
 from typing import Dict, List, Any, Tuple, Set, DefaultDict, Iterable
 from tokenizers import Tokenizer, models, pre_tokenizers, decoders, trainers
 
-from heapq import heappop as hpop
-from heapq import heappush as hpush
-from heapq import heapify as heap
+from heapq import heappop
+from heapq import heappush
+from heapq import heapify
 
 
 class PretrainedBPE:
@@ -35,165 +35,72 @@ class PretrainedBPE:
 class BPE:
     def __init__(self, num_merges=10000):
         self.num_merges = num_merges
-        self.bpe_merges = []
-        self.bpe_pairs = set()
+        self.bpe_codes = {}
 
-        self.vocab = {}
-        self.word_freqs = {}
+    def fit(self, corpus):        
+        word_freqs = Counter()
+        for sentence in corpus:
+            word_freqs.update(sentence)
 
-        self.token2idx = {}
-        self.ind2token = {}
+        vocab = {tuple(word) + ('</w>',): freq for word, freq in word_freqs.items()}
 
-        self.stats = {}
-        self.pairs = []
-        self.indices = {}
+        for i in range(self.num_merges):
+            pairs = defaultdict(int)
+            for word, freq in vocab.items():
+                for i in range(len(word) - 1):
+                    pairs[(word[i], word[i+1])] += freq
 
-    def fit(self, corpus):
-        for tokens in corpus:
-            for word in tokens:
-                self.word_freqs[word] += 1
-
-        self.vocab = {}
-        for word, freq in self.word_freqs.items():
-            chars = tuple(word) + ('</w>',)
-            self.vocab[chars] = freq
-
-        self.stats = defaultdict(int)
-        self.indices = defaultdict(lambda: defaultdict(int))
-
-        for word, freq in self.vocab.items():
-            prev_char = word[0]
-
-            for char in word[1:]:
-                pair = (prev_char, char)
-                self.stats[pair] += freq
-                self.indices[pair][word] += 1
-                prev_char = char
-
-        self.pairs = [(-freq, pair) for pair, freq in self.stats.items()] # -freq тк куча минимальная по дефолту
-        heap(self.pairs)
-
-        for _ in range(self.num_merges):
-            if not self.pairs:
+            if not pairs:
                 break
 
-            freq, best_pair = hpop(self.pairs)
-            freq = -freq
+            best_pair = max(pairs, key=pairs.get)
+            self.bpe_codes[best_pair] = len(self.bpe_codes)
 
-            if self.stats.get(best_pair, 0) != freq:
-                continue
+            new_vocab = {}
+            for word, freq in vocab.items():
+                new_word = self._merge_pair(word, best_pair)
+                new_vocab[new_word] = freq
+            vocab = new_vocab
 
-            self.bpe_merges.append(best_pair)
-
-            seqs = self.merge(best_pair)
-            self.update_pairs(best_pair, seqs)
-
-        self.bpe_pairs = set(''.join(pair) for pair in self.bpe_merges)
-        
-        self.build_vocab(corpus)
-
-    def build_vocab(self, corpus):
-        token_set = set()
-        tokenized_corpus = self.transform(corpus)
-    
-        for tokens in tokenized_corpus:
-            token_set.update(tokens)
-        
-        self.token2idx = {token: idx for idx, token in enumerate(sorted(token_set))}
-        self.ind2token = {idx: token for token, idx in self.token2idx.items()}
+    def _merge_pair(self, word, pair):
+        pair_str = ''.join(pair)
+        i = 0
+        new_word = []
+        while i < len(word):
+            if i < len(word) - 1 and word[i] == pair[0] and word[i+1] == pair[1]:
+                new_word.append(pair_str)
+                i += 2
+            else:
+                new_word.append(word[i])
+                i += 1
+        return tuple(new_word)
 
     def transform(self, corpus):
-        tokenized_texts = []
+        transformed_corpus = []
+        for sentence in corpus:
+            transformed_sentence = []
+            for word in sentence:
+                symbols = list(word) + ['</w>']
+                word_symbols = self._encode_word(symbols)
+                if word_symbols[-1] == '</w>':
+                    word_symbols = word_symbols[:-1]
+                transformed_sentence.extend(word_symbols)
+            transformed_corpus.append(transformed_sentence)
+        return transformed_corpus
 
-        for tokens in corpus:
-            tokenized_sentence = []
-            for token in tokens:
-                bpe_tokens = self.bpe_transform(token)
-                tokenized_sentence.extend(bpe_tokens)
+    def _encode_word(self, symbols):
+        pairs = self._get_pairs(symbols)
+        while True:
+            min_pair = None
+            for pair in pairs:
+                if pair in self.bpe_codes:
+                    if not min_pair or self.bpe_codes[pair] < self.bpe_codes[min_pair]:
+                        min_pair = pair
+            if not min_pair:
+                break
+            symbols = self._merge_pair(symbols, min_pair)
+            pairs = self._get_pairs(symbols)
+        return symbols
 
-            tokenized_texts.append(tokenized_sentence)
-
-        return tokenized_texts
-    
-    def bpe_transform(self, token: str):
-        word = tuple(token) + ('</w>',)
-        idx = 0
-
-        while idx < len(word)-1:
-            pair = (word[idx], word[idx+1])
-            twochar = ''.join(pair)
-
-            if twochar in self.bpe_pairs:
-                word = word[:idx] + (twochar,) + word[idx+2:]
-                idx = max(idx - 1, 0)
-            else:
-                idx += 1
-
-        if word[-1] == '</w>':
-            word = word[:-1]
-
-        return word
-
-    def merge(self, pair_to_merge):
-        twochar = pair_to_merge
-        twochar_str = ''.join(twochar)
-        seqs = []
-
-        for word in list(self.vocab.keys()):
-            if twochar not in zip(word, word[1:]):
-                continue
-
-            freq = self.vocab[word]
-            chars = list(word)
-            i = 0
-            new_seq = []
-            while i < len(chars):
-                if (i < len(chars) -1) and (chars[i] == twochar[0]) and (chars[i+1] == twochar[1]):
-                    new_seq.append(twochar_str)
-                    i += 2
-
-                else:
-                    new_seq.append(chars[i])
-                    i += 1
-            new_seq = tuple(new_seq)
-            self.vocab[new_seq] = self.vocab.pop(word)
-
-            seqs.append((word, new_seq, freq))
-
-        return seqs
-
-    def update_pairs(self, merged_pair, seqs):
-        self.stats.pop(merged_pair, None)
-        self.indices.pop(merged_pair, None)
-
-        for prev_seq, new_seq, freq in seqs:
-            prev_char = prev_seq[0]
-
-            for char in prev_seq[1:]:
-                pair = (prev_char, char)
-                self.stats[pair] -= freq
-
-                if self.stats[pair] == 0:
-                    self.stats.pop(pair)
-                    self.indices.pop(pair, None)
-
-                else:
-                    self.indices[pair][prev_seq] -= 1
-                    if self.indices[pair][prev_seq] == 0:
-                        self.indices[pair].pop(prev_seq)
-
-                prev_char = char
-
-            prev_char = new_seq[0]
-
-            for char in new_seq[1:]:
-                pair = (prev_char, char)
-
-                self.stats[pair] += freq
-                self.indices[pair][new_seq] = self.indices[pair].get(new_seq, 0) + 1
-
-                prev_char = char
-
-            for pair in set(zip(new_seq, new_seq[1:])):
-                freq = self.stats[pair]
-                hpush(self.pairs, (-freq, pair))
+    def _get_pairs(self, symbols):
+        return [(symbols[i], symbols[i+1]) for i in range(len(symbols)-1)]
