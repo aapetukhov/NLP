@@ -4,10 +4,6 @@ from collections import Counter, defaultdict
 from typing import Dict, List, Any, Tuple, Set, DefaultDict, Iterable
 from tokenizers import Tokenizer, models, pre_tokenizers, decoders, trainers
 
-from heapq import heappop
-from heapq import heappush
-from heapq import heapify
-
 
 class PretrainedBPE:
     def __init__(self, vocab_size=30000, min_frequency=2):
