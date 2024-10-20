@@ -50,10 +50,10 @@ class BPE():
         self.splits = {}
         self.merges = {}
 
-    def train(self, corpus):
+    def fit(self, corpus):
+        # corpus - list of lists of words, i.e. tokenized texts after word_tokenize
         for text in corpus:
-            words = word_tokenize(text)
-            for word in words:
+            for word in text:
                 self.word_freqs[word] += 1
 
         alphabet = []
