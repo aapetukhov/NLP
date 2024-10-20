@@ -42,47 +42,40 @@ class PretrainedBPE:
         self.tokenizer = Tokenizer.from_file(path)
 
 
+from collections import defaultdict
+from nltk.tokenize import word_tokenize
+
 class BPE():
-    # inspired by huggingface bpe notes, but wrapped and optimized
+    #inspired by huggingface guide, but optimized
     def __init__(self, vocab_size):
         self.vocab_size = vocab_size
         self.word_freqs = defaultdict(int)
         self.splits = {}
-        self.merges = {}
+        self.merges = []
+        self.token2idx = {}
+        self.idx2token = {}
 
     def fit(self, corpus):
-        # corpus - list of lists of words, i.e. tokenized texts after word_tokenize
         for text in corpus:
             for word in text:
                 self.word_freqs[word] += 1
 
         alphabet = set()
         for word in self.word_freqs.keys():
-            for letter in word:
-                alphabet.add(letter) #O(1)
+            alphabet.update(word)
 
         vocab = ["</w>"] + sorted(alphabet).copy()
-
         self.splits = {word: [c for c in word] for word in self.word_freqs.keys()}
 
         while len(vocab) < self.vocab_size:
-
             pair_freqs = self.calc_pair_freqs()
-
-            best_pair = ""
-            max_freq = None
-            for pair, freq in pair_freqs.items():
-                if max_freq is None or max_freq < freq:
-                    best_pair = pair
-                    max_freq = freq
-
-            if not best_pair:
+            if not pair_freqs:
                 break
-
+            best_pair = max(pair_freqs, key=pair_freqs.get)
             self.splits = self.merge_pair(*best_pair)
-            self.merges[best_pair] = best_pair[0] + best_pair[1]
-            vocab.append("".join(best_pair))
-
+            self.merges.append(best_pair)
+            vocab.append(''.join(best_pair))
+        
         self.build_token2idx(vocab)
         self.build_idx2token(vocab)
 
@@ -106,8 +99,6 @@ class BPE():
     def merge_pair(self, char1, char2):
         for word in self.word_freqs:
             split = self.splits[word]
-            if len(split) == 1:
-                continue
             i = 0
             while i < len(split) - 1:
                 if split[i] == char1 and split[i + 1] == char2:
@@ -119,24 +110,31 @@ class BPE():
 
     def tokenize(self, text):
         words = word_tokenize(text)
-        splits_text = [[c for c in word] for word in words]
+        tokenized_text = []
+        self.merges
 
-        for pair, merge in self.merges.items():
-            for idx, split in enumerate(splits_text):
-                i = 0
-                while i < len(split) - 1:
-                    if split[i] == pair[0] and split[i + 1] == pair[1]:
-                        split = split[:i] + [merge] + split[i + 2:]
+        for word in words:
+            tokens = [c for c in word]
+            i = 0
+            while i < len(tokens):
+                j = 0
+                while j < len(tokens) - 1:
+                    pair = (tokens[j], tokens[j + 1])
+                    if pair in self.merges:
+                        tokens[j:j + 2] = [''.join(pair)]
+                        if j > 0:
+                            j -= 1
                     else:
-                        i += 1
-                splits_text[idx] = split
-        result = sum(splits_text, [])
-        return result
-    
+                        j += 1
+                i += 1
+            tokenized_text.extend(tokens)
+        return tokenized_text
+
     def tokens_to_indices(self, tokenized_texts):
         assert self.token2idx
-        return [[self.token2idx[token] for token in tokens] for tokens in tokenized_texts]
-    
+        return [self.token2idx[token] for token in tokenized_texts]
+
     def indices_to_tokens(self, indexed_texts):
         assert self.idx2token
-        return [[self.idx2token[idx] for idx in indices] for indices in indexed_texts]
+        return [self.idx2token[idx] for idx in indexed_texts]
+
