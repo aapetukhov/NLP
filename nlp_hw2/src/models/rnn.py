@@ -4,7 +4,7 @@ import torch.nn as nn
 class Baseline(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_size, output_size):
         super(Baseline, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=-1)
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         self.hidden_size = hidden_size
 
         self.W = nn.Linear(embedding_dim, hidden_size)
