@@ -27,12 +27,12 @@ class Trainer:
         self.val_f1s = []
 
     @staticmethod
-    def compute_f1(y_true, y_pred):
-        assert y_true.ndim == 2
-        assert y_true.shape == y_pred.shape
+    def compute_f1(y_trues, y_preds):
+        assert y_trues.ndim == 2
+        assert y_trues.shape == y_preds.shape
 
-        y_pred_bin = (y_pred > 0.5).astype(int)
-        return f1_score(y_true, y_pred_bin, average='macro')
+        y_pred_bin = (y_preds >= 0.5).astype(int)
+        return f1_score(y_trues, y_pred_bin, average='macro')
 
     def plot_losses(self):
         clear_output()
@@ -70,12 +70,12 @@ class Trainer:
 
             running_loss += loss.item()
 
-            all_preds.append(outputs.detach().cpu().numpy())
+            all_preds.append(torch.sigmoid(outputs).detach().cpu().numpy())
             all_labels.append(labels.cpu().numpy())
 
-        y_pred = np.vstack(all_preds)
-        y_true = np.vstack(all_labels)
-        f1 = self.compute_f1(y_true, y_pred)
+        y_preds = np.vstack(all_preds)
+        y_trues = np.vstack(all_labels)
+        f1 = self.compute_f1(y_trues.T, y_preds.T) # maybe transpose?
 
         return running_loss / len(self.train_loader), f1
 
@@ -95,12 +95,12 @@ class Trainer:
 
             running_loss += loss.item()
 
-            all_preds.append(outputs.cpu().numpy())
+            all_preds.append(torch.sigmoid(outputs).detach().cpu().numpy())
             all_labels.append(labels.cpu().numpy())
 
-        y_pred = np.vstack(all_preds)
-        y_true = np.vstack(all_labels)
-        f1 = self.compute_f1(y_true, y_pred)
+        y_preds = np.vstack(all_preds)
+        y_trues = np.vstack(all_labels)
+        f1 = self.compute_f1(y_trues.T, y_preds.T) # transpose
 
         return running_loss / len(self.val_loader), f1
 

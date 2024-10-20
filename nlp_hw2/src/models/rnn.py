@@ -24,7 +24,7 @@ class Baseline(nn.Module):
             h_t = self.tanh(self.W(x_t) + self.U(h_t))
         logits = self.V(h_t)
 
-        return self.sigmoid(logits)
+        return logits
     
     def __str__(self):
         all_parameters = sum([p.numel() for p in self.parameters()])
