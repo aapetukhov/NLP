@@ -56,14 +56,12 @@ class BPE():
             for word in text:
                 self.word_freqs[word] += 1
 
-        alphabet = []
+        alphabet = set()
         for word in self.word_freqs.keys():
             for letter in word:
-                if letter not in alphabet:
-                    alphabet.append(letter)
-        alphabet.sort()
+                alphabet.add(letter) #O(1)
 
-        vocab = ["</w>"] + alphabet.copy()
+        vocab = ["</w>"] + sorted(alphabet).copy()
 
         self.splits = {word: [c for c in word] for word in self.word_freqs.keys()}
 
@@ -78,10 +76,21 @@ class BPE():
                     best_pair = pair
                     max_freq = freq
 
+            if not best_pair:
+                break
+
             self.splits = self.merge_pair(*best_pair)
             self.merges[best_pair] = best_pair[0] + best_pair[1]
-            vocab.append(best_pair[0] + best_pair[1])
-        return self.merges
+            vocab.append("".join(best_pair))
+
+        self.build_token2idx(vocab)
+        self.build_idx2token(vocab)
+
+    def build_token2idx(self, vocab):
+        self.token2idx = {token: idx for idx, token in enumerate(vocab, start=1)}
+
+    def build_idx2token(self, vocab):
+        self.idx2token = {idx: token for token, idx in self.token2idx.items()}
 
     def calc_pair_freqs(self):
         pair_freqs = defaultdict(int)
@@ -123,3 +132,11 @@ class BPE():
                 splits_text[idx] = split
         result = sum(splits_text, [])
         return result
+    
+    def tokens_to_indices(self, tokenized_texts):
+        assert self.token2idx
+        return [[self.token2idx[token] for token in tokens] for tokens in tokenized_texts]
+    
+    def indices_to_tokens(self, indexed_texts):
+        assert self.idx2token
+        return [[self.idx2token[idx] for idx in indices] for indices in indexed_texts]

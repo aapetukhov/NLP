@@ -5,6 +5,7 @@ import torch
 import random
 import os
 from nltk.corpus import stopwords
+from torch.utils.data import Dataset, DataLoader
 
 STOP_WORDS = set(stopwords.words("english"))
 
@@ -28,6 +29,21 @@ def set_random_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
+
+def collate_fn(batch, max_seq_len=None):
+    inputs = [item['input_ids'] for item in batch]
+    labels = [item['labels'] for item in batch]
+    
+    if max_seq_len:
+        inputs = [text[:max_seq_len] for text in inputs]
+
+    max_len = max(len(text) for text in inputs)
+    padded_inputs = [text + [0] * (max_len - len(text)) for text in inputs]
+    
+    padded_inputs = torch.tensor(padded_inputs, dtype=torch.long)
+    labels = torch.tensor(np.array(labels), dtype=torch.float32)
+    
+    return {"input_ids": padded_inputs, "labels": labels}
 
 
 class Binarizer:
@@ -62,3 +78,17 @@ class Binarizer:
     @property
     def all_labels(self):
         return self._all_labels
+
+
+class TextDataset(Dataset):
+    def __init__(self, texts, labels):
+        self.texts = texts
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        text = self.texts[idx]
+        label = self.labels[idx]
+        return {"input_ids": text, "labels": label}
