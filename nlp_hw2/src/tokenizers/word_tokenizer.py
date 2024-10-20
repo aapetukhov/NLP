@@ -30,7 +30,7 @@ class WordTokenizer:
         self.vocab = {word for word in self.word_counts
                       if self.word_counts[word] >= self.min_word_freq and self.doc_freq[word] <= max_doc_freq}
 
-        self.word2idx = {word: idx for idx, word in enumerate(sorted(self.vocab))}
+        self.word2idx = {word: idx for idx, word in enumerate(sorted(self.vocab), start=1)}
         self.idx2word = {idx: word for word, idx in self.word2idx.items()}
 
     def tokens_to_indices(self, tokenized_texts):

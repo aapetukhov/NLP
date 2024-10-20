@@ -42,7 +42,7 @@ class Baseline(nn.Module):
 class LSTM(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_size, output_size):
         super(LSTM, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=-1)
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
 
         self.input_size = embedding_dim
         self.hidden_size = hidden_size
