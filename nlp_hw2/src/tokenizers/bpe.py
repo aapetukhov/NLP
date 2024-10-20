@@ -6,17 +6,9 @@ from tokenizers import Tokenizer, models, pre_tokenizers, decoders, trainers
 import heapq
 
 from collections import Counter, defaultdict
-from nltk.tokenize import word_tokenize
-from nltk.tokenize import wordpunct_tokenize
 from tqdm import tqdm
 import toolz
 import json
-
-
-DEFAULT_EOW = '__eow'
-DEFAULT_SOW = '__sow'
-DEFAULT_UNK = '__unk'
-DEFAULT_PAD = '__pad'
 
 
 class PretrainedBPE:
@@ -42,11 +34,8 @@ class PretrainedBPE:
         self.tokenizer = Tokenizer.from_file(path)
 
 
-from collections import defaultdict
-from nltk.tokenize import word_tokenize
-
 class BPE():
-    #inspired by huggingface guide, but optimized
+    #inspired by huggingface guide, but optimized and WITHOUT special libraries
     def __init__(self, vocab_size):
         self.vocab_size = vocab_size
         self.word_freqs = defaultdict(int)
@@ -108,10 +97,9 @@ class BPE():
             self.splits[word] = split
         return self.splits
 
-    def tokenize(self, text):
-        words = word_tokenize(text)
+    def tokenize(self, text: str):
+        words = text.split()
         tokenized_text = []
-        self.merges
 
         for word in words:
             tokens = [c for c in word]
