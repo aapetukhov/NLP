@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import nltk
+import torch
+import random
+import os
 from nltk.corpus import stopwords
 
 STOP_WORDS = set(stopwords.words("english"))
@@ -16,6 +19,15 @@ if "/Users/andreypetukhov/Documents/Машинное-обучение/ML1-and-ML
 
 def text_to_words(text: str):
     return nltk.word_tokenize(text)
+
+def set_random_seed(seed):
+    #как на звуке :)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
 
 class Binarizer:

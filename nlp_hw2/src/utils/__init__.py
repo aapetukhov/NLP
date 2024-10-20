@@ -1,1 +1,1 @@
-from .utils import text_to_words, Binarizer
+from .utils import text_to_words, set_random_seed, Binarizer

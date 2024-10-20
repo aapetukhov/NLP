@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.utils import clip_grad_norm_
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from IPython.display import clear_output
@@ -11,7 +12,7 @@ sns.set_style('whitegrid')
 plt.rcParams.update({'font.size': 15})
 
 class Trainer:
-    def __init__(self, model, optimizer, scheduler, train_loader, val_loader, num_epochs, device, criterion = nn.BCELoss):
+    def __init__(self, model, optimizer, scheduler, train_loader, val_loader, num_epochs, device, criterion = nn.BCELoss, max_grad_norm = 8):
         self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
@@ -20,6 +21,7 @@ class Trainer:
         self.num_epochs = num_epochs
         self.device = device
         self.criterion = criterion
+        self.max_grad_norm = max_grad_norm
 
         self.train_losses = []
         self.val_losses = []
@@ -32,7 +34,7 @@ class Trainer:
         assert y_trues.shape == y_preds.shape
 
         y_pred_bin = (y_preds >= 0.5).astype(int)
-        return f1_score(y_trues, y_pred_bin, average='macro')
+        return f1_score(y_trues, y_pred_bin, average='macro', zero_division=1)
 
     def plot_losses(self):
         clear_output()
@@ -51,6 +53,12 @@ class Trainer:
 
         plt.show()
 
+    def _clip_grad_norm(self):
+        if self.max_grad_norm is not None:
+            clip_grad_norm_(
+                self.model.parameters(), self.max_grad_norm
+            )
+
     def training_epoch(self, tqdm_desc):
         self.model.train()
         running_loss = 0.0
@@ -66,6 +74,7 @@ class Trainer:
             loss = self.criterion(outputs, labels)
 
             loss.backward()
+            self._clip_grad_norm()
             self.optimizer.step()
 
             running_loss += loss.item()
