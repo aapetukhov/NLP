@@ -1,1 +1,1 @@
-from .rnn import Baseline
+from .rnn import Baseline, LSTM
