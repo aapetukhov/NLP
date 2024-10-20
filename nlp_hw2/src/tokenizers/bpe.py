@@ -43,6 +43,7 @@ class PretrainedBPE:
 
 
 class BPE():
+    # inspired by huggingface bpe notes, but wrapped and optimized
     def __init__(self, vocab_size):
         self.vocab_size = vocab_size
         self.word_freqs = defaultdict(int)
@@ -68,7 +69,7 @@ class BPE():
 
         while len(vocab) < self.vocab_size:
 
-            pair_freqs = self.compute_pair_freqs()
+            pair_freqs = self.calc_pair_freqs()
 
             best_pair = ""
             max_freq = None
@@ -82,7 +83,7 @@ class BPE():
             vocab.append(best_pair[0] + best_pair[1])
         return self.merges
 
-    def compute_pair_freqs(self):
+    def calc_pair_freqs(self):
         pair_freqs = defaultdict(int)
         for word, freq in self.word_freqs.items():
             split = self.splits[word]
@@ -93,15 +94,15 @@ class BPE():
                 pair_freqs[pair] += freq
         return pair_freqs
 
-    def merge_pair(self, a, b):
+    def merge_pair(self, char1, char2):
         for word in self.word_freqs:
             split = self.splits[word]
             if len(split) == 1:
                 continue
             i = 0
             while i < len(split) - 1:
-                if split[i] == a and split[i + 1] == b:
-                    split = split[:i] + [a + b] + split[i + 2:]
+                if split[i] == char1 and split[i + 1] == char2:
+                    split = split[:i] + [char1 + char2] + split[i + 2:]
                 else:
                     i += 1
             self.splits[word] = split
