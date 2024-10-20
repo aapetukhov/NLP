@@ -85,8 +85,8 @@ class LSTM(nn.Module):
             o_t = torch.sigmoid(self.W_o(x_t) + self.U_o(h_t) + self.b_o)
             h_t = o_t * torch.tanh(c_t)
 
-        out = self.fc(h_t)
-        return torch.sigmoid(out)
+        logits = self.fc(h_t)
+        return logits
     
     def __str__(self):
         all_parameters = sum([p.numel() for p in self.parameters()])
