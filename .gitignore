@@ -126,9 +126,9 @@ clean_lexicon.txt
 # large files and folders in hw-1
 emails.csv
 autocomplete/
-models/
-tokenizers/
-data/
+models_hw1/
+tokenizers_hw1/
+data_hw1/
 ng/
 wc/
 prefix_trees/
