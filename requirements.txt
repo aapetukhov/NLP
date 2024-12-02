@@ -13,3 +13,4 @@ isort
 pre-commit
 editdistance
 wget
+seqeval
