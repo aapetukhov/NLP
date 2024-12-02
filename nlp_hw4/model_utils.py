@@ -1,8 +1,11 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 from transformers import Trainer
+
+from models import FactorizedBertIntermediate, FactorizedBertOutput
 
 
 class DistilTrainer(Trainer):
@@ -65,3 +68,22 @@ def get_scheduler(optimizer, num_epochs, steps_per_epoch):
         final_div_factor=1e4
     )
     return scheduler
+
+def replace_with_factorized_layers(model: nn.Module, k: int):
+    for layer in model.bert.encoder.layer:
+        intermediate_dense = layer.intermediate.dense
+        d_model = intermediate_dense.in_features
+        d_ff = intermediate_dense.out_features
+        layer.intermediate.dense = FactorizedBertIntermediate(d_model, d_ff, k)
+
+        output_dense = layer.output.dense
+        d_ff = output_dense.in_features
+        d_model = output_dense.out_features
+        layer.output.dense = FactorizedBertOutput(d_ff, d_model, k)
+
+def hook_fn(layer_name):
+    def hook(module, inputs, outputs):
+        global captured_inputs, captured_outputs
+        captured_inputs[layer_name] = inputs[0].detach()
+        captured_outputs[layer_name] = outputs.detach()
+    return hook
