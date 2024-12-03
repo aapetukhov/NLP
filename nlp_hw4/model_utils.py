@@ -15,7 +15,7 @@ class DistilTrainer(Trainer):
         self.teacher_model.eval()
         self.temperature = temperature
 
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, *args, model, inputs, return_outputs=False, **kwargs):
         self.teacher_model.eval()
         outputs = model(**inputs)
         logits_student = outputs.logits
